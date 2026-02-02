@@ -279,9 +279,25 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIGURATION
-        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+        // --- CONFIGURATION FIREBASE ---
+        // Sur GitHub, remplacez les valeurs ci-dessous par celles de votre console Firebase
+        // (Console Firebase > Paramètres du projet > Vos applications > Config SDK)
+        const manualFirebaseConfig = {
+            apiKey: "VOTRE_API_KEY",
+            authDomain: "VOTRE_PROJET.firebaseapp.com",
+            projectId: "VOTRE_PROJET_ID",
+            storageBucket: "VOTRE_PROJET.appspot.com",
+            messagingSenderId: "VOTRE_ID",
+            appId: "VOTRE_APP_ID"
+        };
+
+        // Utilise la config de l'environnement ou la config manuelle si vide
+        const envConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : null;
+        const firebaseConfig = envConfig || manualFirebaseConfig;
+        
         const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'joe-billing-2026';
+        
+        // Initialisation
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -347,7 +363,13 @@
                 } else {
                     await signInAnonymously(auth);
                 }
-            } catch (e) { console.error("Auth error:", e); }
+            } catch (e) { 
+                console.error("Auth error:", e); 
+                // Si l'auth échoue sur GitHub, c'est probablement que Firebase n'est pas configuré
+                if (!envConfig) {
+                    alert("Attention : Firebase n'est pas configuré. Veuillez remplir manualFirebaseConfig dans le code.");
+                }
+            }
 
             onAuthStateChanged(auth, (u) => {
                 user = u;
