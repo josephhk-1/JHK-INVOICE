@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="fr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joe 4 Design - Système de Facturation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #c5a059;
+            --navy: #0f172a;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Playfair Display', serif; }
+        
+        .gold-gradient {
+            background: linear-gradient(135deg, #c5a059 0%, #f1e4c3 50%, #c5a059 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .bg-navy { background-color: var(--navy); }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            .print-container { 
+                box-shadow: none !important; 
+                border: none !important; 
+                width: 100% !important;
+                margin: 0 !important;
+            }
+            @page { margin: 1.5cm; }
+        }
+
+        .custom-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
+        
+        /* Glassmorphism effects */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--gold);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-900 overflow-hidden">
+
+    <div id="app" class="flex h-full w-full">
+        <!-- BARRE LATÉRALE -->
+        <aside class="no-print w-72 bg-navy text-white flex flex-col shrink-0 z-50">
+            <div class="p-8 border-b border-slate-800">
+                <h1 class="font-display text-2xl gold-gradient font-bold uppercase tracking-tight">joe 4 design</h1>
+                <p class="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase mt-1">Facturation Studio</p>
+            </div>
+
+            <!-- Sélecteur de langue -->
+            <div class="px-6 py-4 flex justify-between border-b border-slate-800 bg-slate-900/50">
+                <button onclick="setLanguage('fr')" class="lang-btn text-xs font-bold px-2 py-1 rounded hover:bg-slate-700 transition-colors" data-lang="fr">FR</button>
+                <button onclick="setLanguage('en')" class="lang-btn text-xs font-bold px-2 py-1 rounded hover:bg-slate-700 transition-colors" data-lang="en">EN</button>
+                <button onclick="setLanguage('it')" class="lang-btn text-xs font-bold px-2 py-1 rounded hover:bg-slate-700 transition-colors" data-lang="it">IT</button>
+                <button onclick="setLanguage('ar')" class="lang-btn text-xs font-bold px-2 py-1 rounded hover:bg-slate-700 transition-colors" data-lang="ar">AR</button>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-2 mt-4">
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 text-amber-500 font-semibold transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    <span data-i18n="nav_dashboard">Tableau de bord</span>
+                </button>
+                <button onclick="switchView('new')" id="nav-new" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span data-i18n="nav_new">Nouvelle Facture</span>
+                </button>
+            </nav>
+
+            <div class="p-6 text-[10px] text-slate-500 font-medium border-t border-slate-800">
+                <p>© 2026 JOE 4 DESIGN</p>
+                <p data-i18n="footer_rights">Tous droits réservés</p>
+            </div>
+        </aside>
+
+        <!-- ZONE DE CONTENU -->
+        <main class="flex-1 h-full overflow-y-auto relative">
+            
+            <!-- VUE DASHBOARD -->
+            <div id="view-dashboard" class="p-10 max-w-6xl mx-auto animate-in fade-in duration-500">
+                <header class="flex justify-between items-end mb-10">
+                    <div>
+                        <h2 class="text-4xl font-display font-bold text-slate-900" data-i18n="dashboard_title">Historique des Factures</h2>
+                        <p class="text-slate-500 mt-2" data-i18n="dashboard_subtitle">Gérez vos prestations et encaissements</p>
+                    </div>
+                    <button onclick="switchView('new')" class="bg-navy text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                        <span data-i18n="nav_new">Nouvelle Facture</span>
+                    </button>
+                </header>
+
+                <div id="invoices-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Factures injectées ici -->
+                </div>
+
+                <div id="empty-state" class="hidden flex flex-col items-center justify-center py-32 text-slate-300">
+                    <svg class="w-20 h-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <p class="text-xl font-medium" data-i18n="empty_msg">Aucune facture enregistrée</p>
+                </div>
+            </div>
+
+            <!-- VUE FORMULAIRE & PREVIEW -->
+            <div id="view-editor" class="hidden flex h-full">
+                <!-- Panneau gauche : Formulaire -->
+                <div class="no-print w-96 bg-white border-r border-slate-200 overflow-y-auto p-8 shadow-inner">
+                    <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-6 bg-amber-500 rounded-full"></span>
+                        <span data-i18n="editor_title">Détails de la facture</span>
+                    </h3>
+                    
+                    <div class="space-y-5">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="field_number">N° Facture</label>
+                            <input type="text" id="f-number" class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm transition-all" placeholder="2026-001">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="field_date">Date d'émission</label>
+                            <input type="date" id="f-date" class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm">
+                        </div>
+                        <div class="pt-4 border-t border-slate-100">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="field_client">Client</label>
+                            <input type="text" id="f-client-name" class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm mb-2" placeholder="Nom du client">
+                            <textarea id="f-client-addr" rows="3" class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm resize-none" placeholder="Adresse complète"></textarea>
+                        </div>
+                        <div class="pt-4 border-t border-slate-100">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="field_service">Prestation</label>
+                            <textarea id="f-service" rows="3" class="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm resize-none mb-2" placeholder="Description du service"></textarea>
+                            <div class="flex items-center gap-3">
+                                <div class="relative flex-1">
+                                    <input type="number" id="f-amount" class="w-full pl-8 pr-4 py-3 rounded-lg border border-slate-200 focus:border-amber-500 outline-none text-sm" placeholder="0.00">
+                                    <span class="absolute left-3 top-3.5 text-slate-400 text-sm">€</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btn-save" onclick="saveInvoice()" class="w-full bg-navy text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition-all flex justify-center items-center gap-3 mt-8">
+                            <span data-i18n="btn_save">Enregistrer la facture</span>
+                            <div id="save-loader" class="loader hidden"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panneau droit : Preview -->
+                <div class="flex-1 bg-slate-100 overflow-y-auto p-12">
+                    <div class="no-print flex justify-between items-center max-w-[21cm] mx-auto mb-6">
+                        <button onclick="switchView('dashboard')" class="text-slate-500 hover:text-navy flex items-center gap-2 font-semibold">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                            <span data-i18n="btn_back">Retour</span>
+                        </button>
+                        <button onclick="window.print()" class="bg-white text-navy px-6 py-2.5 rounded-lg font-bold border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                            <span data-i18n="btn_print">Imprimer</span>
+                        </button>
+                    </div>
+
+                    <!-- LE DOCUMENT FACTURE -->
+                    <div id="invoice-paper" class="print-container bg-white w-full max-w-[21cm] mx-auto min-h-[29.7cm] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                        <!-- Header -->
+                        <div class="bg-navy p-16 text-white flex justify-between items-start relative overflow-hidden">
+                            <div class="absolute right-0 top-0 w-64 h-64 bg-amber-500/10 rounded-full translate-x-1/2 -translate-y-1/2"></div>
+                            <div class="relative z-10">
+                                <h2 class="font-display text-5xl gold-gradient font-bold uppercase tracking-tighter">joe 4 design</h2>
+                                <p class="text-slate-400 font-medium tracking-widest text-xs mt-2 uppercase" data-i18n="preview_subtitle">Communication & Design Studio</p>
+                            </div>
+                            <div class="text-right relative z-10">
+                                <h1 class="text-4xl font-display font-bold text-amber-500 tracking-tighter" data-i18n="doc_title">FACTURE</h1>
+                                <div class="mt-4 text-xs font-bold text-slate-400 space-y-1">
+                                    <p><span data-i18n="field_number">N° Facture</span> : <span id="p-number" class="text-white">---</span></p>
+                                    <p><span data-i18n="field_date">Date</span> : <span id="p-date" class="text-white">---</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="p-16 space-y-16">
+                            <!-- Infos blocs -->
+                            <div class="grid grid-cols-2 gap-20">
+                                <div class="space-y-4">
+                                    <h4 class="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] border-b border-amber-100 pb-2" data-i18n="from_label">ÉMETTEUR</h4>
+                                    <div class="text-xs text-slate-600 leading-relaxed font-medium">
+                                        <p class="text-navy font-bold text-sm mb-1">Hamdy Kamal Joseph</p>
+                                        <p class="text-slate-400 mb-2 italic">joe 4 design</p>
+                                        <p>11 AV de la Division Leclerc</p>
+                                        <p>95170 Deuil-la-Barre, FRANCE</p>
+                                        <p class="mt-6 text-[9px] text-slate-400 font-black uppercase">SIRET : 12345678901234 | APE : 7410Z</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-4">
+                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2" data-i18n="to_label">ADRESSÉ À</h4>
+                                    <div class="text-xs text-slate-600 leading-relaxed">
+                                        <p id="p-client-name" class="text-navy font-bold text-sm mb-1 uppercase tracking-tight">---</p>
+                                        <p id="p-client-addr" class="whitespace-pre-wrap font-medium">---</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-navy text-white">
+                                            <th class="px-8 py-5 text-[10px] font-black uppercase tracking-widest" data-i18n="table_desc">Description de la prestation</th>
+                                            <th class="px-8 py-5 text-right text-[10px] font-black uppercase tracking-widest w-40" data-i18n="table_total">Total HT</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <tr>
+                                            <td id="p-service" class="px-8 py-10 text-slate-700 font-medium text-sm leading-relaxed">---</td>
+                                            <td id="p-amount-row" class="px-8 py-10 text-right font-bold text-navy text-lg">---</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="bg-slate-50/50 p-8 flex justify-end">
+                                    <div class="w-72 space-y-3">
+                                        <div class="flex justify-between text-xs font-bold text-slate-400 uppercase">
+                                            <span data-i18n="subtotal_label">Sous-total HT</span>
+                                            <span id="p-subtotal">---</span>
+                                        </div>
+                                        <div class="flex justify-between text-[10px] font-bold text-slate-300 uppercase italic">
+                                            <span data-i18n="vat_label">TVA (Exonéré Art. 293B)</span>
+                                            <span>0,00 €</span>
+                                        </div>
+                                        <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
+                                            <span class="text-xs font-black text-navy uppercase tracking-widest" data-i18n="total_label">TOTAL À PAYER</span>
+                                            <span id="p-total" class="text-2xl font-black text-amber-600 tracking-tighter">---</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mentions & Paiement -->
+                            <div class="grid grid-cols-2 gap-12 pt-10">
+                                <div class="space-y-4">
+                                    <h5 class="text-[9px] font-black text-navy uppercase tracking-widest" data-i18n="legal_label">Informations légales</h5>
+                                    <p class="text-[9px] text-slate-400 leading-relaxed font-medium">TVA non applicable, art. 293 B du CGI. Pénalité de retard de 10% par mois de retard commencé. Indemnité forfaitaire de recouvrement : 40€. Aucun escompte pour paiement anticipé.</p>
+                                </div>
+                                <div class="bg-navy rounded-3xl p-8 text-white space-y-4 shadow-2xl relative overflow-hidden">
+                                    <div class="absolute right-0 bottom-0 w-24 h-24 bg-white/5 rounded-full translate-x-1/2 translate-y-1/2"></div>
+                                    <h5 class="text-[9px] font-black text-amber-500 uppercase tracking-widest" data-i18n="payment_label">Coordonnées de paiement</h5>
+                                    <div class="space-y-2">
+                                        <p class="text-[11px] font-bold tracking-tight">Virement Bancaire (SEPA)</p>
+                                        <div class="space-y-1">
+                                            <p class="text-[8px] text-slate-500 font-black uppercase">IBAN</p>
+                                            <p class="text-[11px] font-mono font-bold tracking-tighter">FR76 1234 5678 9012 3456 7890 123</p>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-[8px] text-slate-500 font-black uppercase">BIC / SWIFT</p>
+                                            <p class="text-[11px] font-mono font-bold tracking-tighter">BNPAFRPPXXX</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts Firebase & Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // CONFIGURATION
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+        const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'joe-billing-2026';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ÉTAT DE L'APP
+        let user = null;
+        let invoices = [];
+        let currentLang = 'fr';
+        let currentView = 'dashboard';
+
+        const i18n = {
+            fr: {
+                nav_dashboard: "Tableau de bord", nav_new: "Nouveau", footer_rights: "Tous droits réservés",
+                dashboard_title: "Historique", dashboard_subtitle: "Gestion du studio",
+                empty_msg: "Aucune facture enregistrée", editor_title: "Détails",
+                field_number: "N° Facture", field_date: "Date", field_client: "Client", field_service: "Prestation",
+                btn_save: "Enregistrer", btn_back: "Retour", btn_print: "Imprimer",
+                doc_title: "FACTURE", preview_subtitle: "Studio Communication & Design",
+                from_label: "ÉMETTEUR", to_label: "ADRESSÉ À", table_desc: "Prestation", table_total: "Total HT",
+                subtotal_label: "Sous-total HT", vat_label: "TVA", total_label: "TOTAL À PAYER",
+                legal_label: "Légal", payment_label: "Paiement"
+            },
+            en: {
+                nav_dashboard: "Dashboard", nav_new: "New Invoice", footer_rights: "All rights reserved",
+                dashboard_title: "Invoice History", dashboard_subtitle: "Manage your studio billing",
+                empty_msg: "No invoices saved yet", editor_title: "Details",
+                field_number: "Invoice No.", field_date: "Date", field_client: "Client", field_service: "Service",
+                btn_save: "Save Invoice", btn_back: "Back", btn_print: "Print",
+                doc_title: "INVOICE", preview_subtitle: "Communication & Design Studio",
+                from_label: "FROM", to_label: "BILL TO", table_desc: "Description", table_total: "Total",
+                subtotal_label: "Sub-total", vat_label: "VAT", total_label: "TOTAL DUE",
+                legal_label: "Legal Info", payment_label: "Payment Details"
+            },
+            it: {
+                nav_dashboard: "Dashboard", nav_new: "Nuovo", footer_rights: "Tutti i diritti riservati",
+                dashboard_title: "Storico Fatture", dashboard_subtitle: "Gestione dello studio",
+                empty_msg: "Nessuna fattura salvata", editor_title: "Dettagli",
+                field_number: "N° Fattura", field_date: "Data", field_client: "Cliente", field_service: "Servizio",
+                btn_save: "Salva", btn_back: "Indietro", btn_print: "Stampa",
+                doc_title: "FATTURA", preview_subtitle: "Studio di Design e Comunicazione",
+                from_label: "DA", to_label: "A", table_desc: "Descrizione", table_total: "Totale",
+                subtotal_label: "Totale parziale", vat_label: "IVA", total_label: "TOTALE DA PAGARE",
+                legal_label: "Note legali", payment_label: "Pagamento"
+            },
+            ar: {
+                nav_dashboard: "لوحة التحكم", nav_new: "فاتورة جديدة", footer_rights: "جميع الحقوق محفوظة",
+                dashboard_title: "سجل الفواتير", dashboard_subtitle: "إدارة الاستوديو",
+                empty_msg: "لا توجد فواتير محفوظة", editor_title: "التفاصيل",
+                field_number: "رقم الفاتورة", field_date: "التاريخ", field_client: "العميل", field_service: "الخدمة",
+                btn_save: "حفظ الفاتورة", btn_back: "رجوع", btn_print: "طباعة",
+                doc_title: "فاتورة", preview_subtitle: "استوديو التصميم والاتصال",
+                from_label: "من", to_label: "إلى", table_desc: "الوصف", table_total: "الإجمالي",
+                subtotal_label: "المجموع الفرعي", vat_label: "الضريبة", total_label: "المبلغ الإجمالي",
+                legal_label: "معلومات قانونية", payment_label: "طريقة الدفع"
+            }
+        };
+
+        // INITIALISATION
+        const startup = async () => {
+            try {
+                if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
+                    await signInWithCustomToken(auth, window.__initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) { console.error("Auth error:", e); }
+
+            onAuthStateChanged(auth, (u) => {
+                user = u;
+                if (u) listenInvoices();
+            });
+
+            window.setLanguage('fr');
+            setupFormListeners();
+        };
+
+        // GESTION LANGUE
+        window.setLanguage = (lang) => {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.textContent = i18n[lang][key] || key;
+            });
+
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if (btn.getAttribute('data-lang') === lang) {
+                    btn.classList.add('bg-amber-500', 'text-white');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('bg-amber-500', 'text-white');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+
+            renderDashboard();
+        };
+
+        // NAVIGATION
+        window.switchView = (view) => {
+            currentView = view;
+            const dash = document.getElementById('view-dashboard');
+            const editor = document.getElementById('view-editor');
+            const navDash = document.getElementById('nav-dashboard');
+            const navNew = document.getElementById('nav-new');
+
+            dash.classList.add('hidden');
+            editor.classList.add('hidden');
+            navDash.classList.remove('bg-amber-500/10', 'text-amber-500');
+            navNew.classList.remove('bg-amber-500/10', 'text-amber-500');
+            navDash.classList.add('text-slate-400');
+            navNew.classList.add('text-slate-400');
+
+            if (view === 'dashboard') {
+                dash.classList.remove('hidden');
+                navDash.classList.add('bg-amber-500/10', 'text-amber-500');
+                navDash.classList.remove('text-slate-400');
+            } else {
+                editor.classList.remove('hidden');
+                navNew.classList.add('bg-amber-500/10', 'text-amber-500');
+                navNew.classList.remove('text-slate-400');
+                if (view === 'new') resetForm();
+            }
+        };
+
+        // FIRESTORE
+        const listenInvoices = () => {
+            const col = collection(db, 'artifacts', appId, 'public', 'data', 'invoices');
+            onSnapshot(col, (snap) => {
+                invoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderDashboard();
+            }, (err) => console.error("Firestore Error:", err));
+        };
+
+        window.saveInvoice = async () => {
+            if (!user) return;
+            const loader = document.getElementById('save-loader');
+            const btn = document.getElementById('btn-save');
+
+            const data = {
+                number: document.getElementById('f-number').value,
+                date: document.getElementById('f-date').value,
+                clientName: document.getElementById('f-client-name').value,
+                clientAddr: document.getElementById('f-client-addr').value,
+                service: document.getElementById('f-service').value,
+                amount: parseFloat(document.getElementById('f-amount').value || 0),
+                timestamp: Date.now()
+            };
+
+            if (!data.number || !data.clientName || !data.amount) {
+                alert("Veuillez remplir les champs obligatoires (N°, Client, Montant)");
+                return;
+            }
+
+            loader.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'invoices'), data);
+                switchView('dashboard');
+            } catch (e) {
+                console.error(e);
+                alert("Erreur de sauvegarde.");
+            } finally {
+                loader.classList.add('hidden');
+                btn.disabled = false;
+            }
+        };
+
+        window.deleteInvoice = async (id, e) => {
+            e.stopPropagation();
+            if (!confirm("Supprimer cette facture ?")) return;
+            try {
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'invoices', id));
+            } catch (e) { console.error(e); }
+        };
+
+        // UI & RENDERING
+        const setupFormListeners = () => {
+            const fields = ['number', 'date', 'client-name', 'client-addr', 'service', 'amount'];
+            fields.forEach(id => {
+                document.getElementById(`f-${id}`).addEventListener('input', updatePreview);
+            });
+            document.getElementById('f-date').valueAsDate = new Date();
+        };
+
+        const updatePreview = () => {
+            const n = document.getElementById('f-number').value || '---';
+            const d = document.getElementById('f-date').value ? new Date(document.getElementById('f-date').value).toLocaleDateString(currentLang) : '---';
+            const cn = document.getElementById('f-client-name').value || '---';
+            const ca = document.getElementById('f-client-addr').value || '---';
+            const s = document.getElementById('f-service').value || '---';
+            const a = parseFloat(document.getElementById('f-amount').value || 0);
+
+            document.getElementById('p-number').textContent = n;
+            document.getElementById('p-date').textContent = d;
+            document.getElementById('p-client-name').textContent = cn;
+            document.getElementById('p-client-addr').textContent = ca;
+            document.getElementById('p-service').textContent = s;
+            
+            const formatted = formatMoney(a);
+            document.getElementById('p-amount-row').textContent = formatted;
+            document.getElementById('p-subtotal').textContent = formatted;
+            document.getElementById('p-total').textContent = formatted;
+        };
+
+        const renderDashboard = () => {
+            const grid = document.getElementById('invoices-list');
+            const empty = document.getElementById('empty-state');
+            grid.innerHTML = "";
+
+            if (invoices.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            const sorted = [...invoices].sort((a,b) => b.timestamp - a.timestamp);
+            sorted.forEach(inv => {
+                const card = document.createElement('div');
+                card.className = "glass-card p-6 rounded-3xl border border-slate-200 custom-shadow hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden";
+                card.onclick = () => openInvoice(inv);
+                
+                card.innerHTML = `
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-slate-50 rounded-full translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="bg-navy text-amber-500 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">${inv.number}</div>
+                        <button onclick="deleteInvoice('${inv.id}', event)" class="text-slate-300 hover:text-red-500 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                    <div class="space-y-1">
+                        <h4 class="font-bold text-navy truncate tracking-tight text-lg">${inv.clientName}</h4>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${new Date(inv.date).toLocaleDateString(currentLang)}</p>
+                    </div>
+                    <div class="mt-8 pt-6 border-t border-slate-50 flex justify-between items-end">
+                        <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest">Total Net</span>
+                        <span class="text-2xl font-black text-navy tracking-tighter">${formatMoney(inv.amount)}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        const openInvoice = (inv) => {
+            switchView('editor');
+            document.getElementById('f-number').value = inv.number;
+            document.getElementById('f-date').value = inv.date;
+            document.getElementById('f-client-name').value = inv.clientName;
+            document.getElementById('f-client-addr').value = inv.clientAddr;
+            document.getElementById('f-service').value = inv.service;
+            document.getElementById('f-amount').value = inv.amount;
+            updatePreview();
+        };
+
+        const resetForm = () => {
+            document.getElementById('f-number').value = "";
+            document.getElementById('f-client-name').value = "";
+            document.getElementById('f-client-addr').value = "";
+            document.getElementById('f-service').value = "";
+            document.getElementById('f-amount').value = "";
+            document.getElementById('f-date').valueAsDate = new Date();
+            updatePreview();
+        };
+
+        const formatMoney = (val) => {
+            return new Intl.NumberFormat(currentLang === 'fr' ? 'fr-FR' : 'en-US', {
+                style: 'currency',
+                currency: 'EUR',
+            }).format(val);
+        };
+
+        startup();
+    </script>
+</body>
+</html>
